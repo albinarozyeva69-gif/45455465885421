@@ -4,6 +4,7 @@
 
 import { motion } from "framer-motion";
 import {
+  Home,
   ImagePlus,
   Loader2,
   LogOut,
@@ -13,6 +14,7 @@ import {
   Trash2,
   Upload
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { adminCategories, normalizeTags } from "@/lib/categories";
 import {
@@ -46,6 +48,7 @@ export function AdminDashboard() {
   const [signedIn, setSignedIn] = useState(false);
   const [authChecked, setAuthChecked] = useState(!isSupabaseConfigured);
   const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState(
     isSupabaseConfigured
       ? "Войдите один раз. Сессия сохранится на этом устройстве."
@@ -227,11 +230,13 @@ export function AdminDashboard() {
 
   async function savePrompt() {
     if (!draft.title.trim() || !draft.prompt.trim()) {
+      setSaved(false);
       setMessage("Добавьте название и текст промпта.");
       return;
     }
 
     if (!draft.imageFile && !draft.imageUrl) {
+      setSaved(false);
       setMessage("Добавьте изображение для карточки.");
       return;
     }
@@ -282,9 +287,11 @@ export function AdminDashboard() {
       }
 
       setDraft(emptyDraft);
+      setSaved(true);
       setMessage("Промпт сохранён.");
       hapticTap();
     } catch {
+      setSaved(false);
       setMessage("Не удалось сохранить. Проверьте права Supabase и Storage.");
     } finally {
       setBusy(false);
@@ -395,14 +402,24 @@ export function AdminDashboard() {
             </p>
             <h1 className="text-3xl font-black tracking-tight">Быстрое добавление</h1>
           </div>
-          <button
-            aria-label="Выйти"
-            className="grid size-12 place-items-center rounded-full border border-black/10 bg-white/70 shadow-sm backdrop-blur-xl transition active:scale-95 dark:border-white/10 dark:bg-white/8"
-            type="button"
-            onClick={signOut}
-          >
-            <LogOut size={19} />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              aria-label="Главная"
+              className="flex h-12 items-center justify-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 text-sm font-bold shadow-sm backdrop-blur-xl transition active:scale-95 dark:border-white/10 dark:bg-white/8"
+              href="/"
+            >
+              <Home size={18} />
+              Главная
+            </Link>
+            <button
+              aria-label="Выйти"
+              className="grid size-12 place-items-center rounded-full border border-black/10 bg-white/70 shadow-sm backdrop-blur-xl transition active:scale-95 dark:border-white/10 dark:bg-white/8"
+              type="button"
+              onClick={signOut}
+            >
+              <LogOut size={19} />
+            </button>
+          </div>
         </header>
 
         <motion.section
@@ -486,6 +503,15 @@ export function AdminDashboard() {
               <p className="text-center text-sm font-semibold text-neutral-500 dark:text-neutral-400">
                 {message}
               </p>
+              {saved ? (
+                <Link
+                  className="flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white/80 px-5 text-base font-black text-neutral-950 shadow-lg shadow-black/8 transition active:scale-[0.98] dark:border-white/10 dark:bg-white/10 dark:text-white"
+                  href="/"
+                >
+                  <Home size={19} />
+                  Открыть главную
+                </Link>
+              ) : null}
             </div>
           </div>
         </motion.section>
