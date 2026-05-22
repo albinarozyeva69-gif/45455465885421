@@ -1,0 +1,38 @@
+# dependencies
+node_modules
+.pnp
+.pnp.*
+
+# next
+.next
+out
+
+# production
+build
+dist
+
+# local env
+.env
+.env*.local
+!.env.example
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+next-dev.log
+
+# TypeScript
+*.tsbuildinfo
+
+# misc
+.DS_Store
+*.pem
+
+# vercel
+.vercel
+
+# supabase local
+supabase/.branches
+supabase/.temp
