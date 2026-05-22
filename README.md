@@ -24,7 +24,7 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-The app works with built-in seed content when Supabase variables are not configured. Add Supabase variables to enable live database, admin auth, uploads, copy counters, and storage.
+The gallery starts empty by design. Add prompts and images through `/admin`; public cards are loaded from Supabase.
 
 ## Supabase Setup
 
@@ -32,17 +32,9 @@ The app works with built-in seed content when Supabase variables are not configu
 2. Copy `.env.example` to `.env.local` and fill:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. Run the migration in `supabase/migrations/20260522190000_create_prompt_gallery.sql` with the Supabase SQL editor or Supabase CLI.
-4. Create an auth user in Supabase.
-5. Promote that user to admin:
-
-```sql
-update public.profiles
-set role = 'admin'
-where email = 'your-email@example.com';
-```
-
-6. Visit `/admin`, sign in, and add prompts with image uploads.
+3. Run all migrations in `supabase/migrations` with the Supabase SQL editor or Supabase CLI.
+4. Visit `/admin`, create or sign in to the owner account, and add prompts with image uploads.
+5. The first authenticated account can claim admin access automatically. Later users must already have admin rights.
 
 ## Vercel Deployment
 
@@ -66,7 +58,7 @@ git push -u origin main
 
 ## Production Notes
 
-- Images are local WebP assets for the starter gallery and Supabase Storage URLs for admin-created prompts.
-- The service worker caches the shell and gallery images for offline browsing.
+- Prompt images are stored in Supabase Storage.
+- The service worker caches the app shell for offline recovery.
 - Admin writes are allowed only for users with `profiles.role = 'admin'`.
-- The frontend keeps a local fallback store so mobile interactions stay instant while Supabase syncs in the background.
+- The frontend starts clean and shows only owner-created prompts from Supabase.
