@@ -2,8 +2,11 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Prompt, PromptTagSlug } from "@/types/prompt";
 import { labelsFromSlugs } from "@/lib/categories";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://sdxomyezmrbxxwpkaqfn.supabase.co";
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  "sb_publishable_asWOmJLZ85F1IWNFS_7KTw_KnqYI650";
 
 let client: SupabaseClient | null = null;
 
