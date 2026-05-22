@@ -6,25 +6,7 @@ const STARTER_ASSETS = [
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
-  "/apple-touch-icon.png",
-  "/images/prompt-cinematic-luxury.webp",
-  "/images/prompt-cyberpunk-street.webp",
-  "/images/prompt-fashion-realism.webp",
-  "/images/prompt-iphone-studio.webp",
-  "/images/prompt-anime-rooftop.webp",
-  "/images/prompt-food-commercial.webp",
-  "/images/prompt-space-corridor.webp",
-  "/images/prompt-business-workspace.webp",
-  "/images/prompt-marble-architecture.webp",
-  "/images/prompt-night-car.webp",
-  "/images/prompt-skincare-macro.webp",
-  "/images/prompt-travel-drone.webp",
-  "/images/prompt-tiktok-studio.webp",
-  "/images/prompt-youtube-creator.webp",
-  "/images/prompt-anime-character.webp",
-  "/images/prompt-luxury-watch.webp",
-  "/images/prompt-restaurant-interior.webp",
-  "/images/prompt-robot-portrait.webp"
+  "/apple-touch-icon.png"
 ];
 
 self.addEventListener("install", (event) => {

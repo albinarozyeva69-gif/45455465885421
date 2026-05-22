@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { adminCategories, normalizeTags } from "@/lib/categories";
-import { seedPrompts } from "@/lib/prompts";
 import {
   getSupabaseClient,
   isSupabaseConfigured,
@@ -44,15 +43,16 @@ export function AdminDashboard() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authMode, setAuthMode] = useState<"sign-in" | "sign-up">("sign-in");
-  const [signedIn, setSignedIn] = useState(!isSupabaseConfigured);
+  const [signedIn, setSignedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(!isSupabaseConfigured);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(
     isSupabaseConfigured
-      ? "Войдите, чтобы управлять галереей."
-      : "Демо-режим: подключите Supabase env для реальных загрузок."
+      ? "Войдите один раз. Сессия сохранится на этом устройстве."
+      : "Подключите Supabase для реальных загрузок."
   );
   const [draft, setDraft] = useState<PromptDraft>(emptyDraft);
-  const [items, setItems] = useState<Prompt[]>(seedPrompts);
+  const [items, setItems] = useState<Prompt[]>([]);
 
   const imagePreview = useMemo(() => {
     if (draft.imageFile) {
@@ -77,27 +77,63 @@ export function AdminDashboard() {
     }
   }, [supabase]);
 
+  const ensureAdminAccess = useCallback(async () => {
+    if (!supabase) {
+      return true;
+    }
+
+    const { data, error } = await supabase.rpc("claim_first_admin");
+
+    if (error) {
+      setMessage("Не удалось проверить доступ администратора.");
+      return false;
+    }
+
+    if (!data) {
+      setMessage("Этот аккаунт не администратор. Войдите под владельцем проекта.");
+      return false;
+    }
+
+    setMessage("Вы вошли. Можно добавлять промпты.");
+    await refresh();
+    return true;
+  }, [refresh, supabase]);
+
   useEffect(() => {
     if (!supabase) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAuthChecked(true);
       return;
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSignedIn(Boolean(data.session));
-      if (data.session) {
-        refresh();
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) {
+        setSignedIn(false);
+        setAuthChecked(true);
+        return;
       }
+
+      const allowed = await ensureAdminAccess();
+      setSignedIn(allowed);
+      setAuthChecked(true);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSignedIn(Boolean(session));
-      if (session) {
-        refresh();
-      }
+      void (async () => {
+        if (!session) {
+          setSignedIn(false);
+          setAuthChecked(true);
+          return;
+        }
+
+        const allowed = await ensureAdminAccess();
+        setSignedIn(allowed);
+        setAuthChecked(true);
+      })();
     });
 
     return () => listener.subscription.unsubscribe();
-  }, [refresh, supabase]);
+  }, [ensureAdminAccess, supabase]);
 
   async function signIn() {
     if (!supabase) {
@@ -107,14 +143,16 @@ export function AdminDashboard() {
 
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
 
     if (error) {
+      setBusy(false);
       setMessage("Не удалось войти. Проверьте почту и пароль.");
       return;
     }
 
-    setMessage("Админка готова.");
+    const allowed = await ensureAdminAccess();
+    setSignedIn(allowed);
+    setBusy(false);
     hapticTap();
   }
 
@@ -134,38 +172,13 @@ export function AdminDashboard() {
     }
 
     if (data.session) {
-      setSignedIn(true);
-      setMessage("Аккаунт создан. Активируйте роль первого админа.");
+      const allowed = await ensureAdminAccess();
+      setSignedIn(allowed);
     } else {
       setMessage("Аккаунт создан. Проверьте почту и подтвердите вход.");
     }
 
     hapticTap();
-  }
-
-  async function claimFirstAdmin() {
-    if (!supabase) {
-      setMessage("Демо-режим уже открыт.");
-      return;
-    }
-
-    setBusy(true);
-    const { data, error } = await supabase.rpc("claim_first_admin");
-    setBusy(false);
-
-    if (error) {
-      setMessage("Не удалось активировать администратора.");
-      return;
-    }
-
-    if (data) {
-      setMessage("Роль администратора активирована.");
-      await refresh();
-      hapticTap();
-      return;
-    }
-
-    setMessage("Первый администратор уже создан. Войдите под этим аккаунтом.");
   }
 
   async function signOut() {
@@ -304,6 +317,19 @@ export function AdminDashboard() {
     hapticTap();
   }
 
+  if (!authChecked) {
+    return (
+      <main className="grid min-h-svh place-items-center px-5 py-10">
+        <div className="flex flex-col items-center text-center">
+          <Loader2 className="animate-spin text-neutral-500" size={34} />
+          <p className="mt-4 text-sm font-bold text-neutral-500 dark:text-neutral-400">
+            Проверяем вход
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   if (!signedIn) {
     return (
       <main className="grid min-h-svh place-items-center px-5 py-10">
@@ -316,8 +342,8 @@ export function AdminDashboard() {
           </h1>
           <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
             {authMode === "sign-in"
-              ? "Используйте аккаунт Supabase с ролью администратора."
-              : "Первый пользователь сможет активировать роль администратора."}
+              ? "Войдите и сразу добавляйте промпты без повторного выхода."
+              : "Создайте аккаунт владельца. Первый аккаунт станет админом автоматически."}
           </p>
           <div className="mt-5 grid gap-3">
             <input
@@ -341,7 +367,7 @@ export function AdminDashboard() {
               onClick={authMode === "sign-in" ? signIn : signUp}
             >
               {busy ? <Loader2 className="animate-spin" size={18} /> : null}
-              {authMode === "sign-in" ? "Войти" : "Создать аккаунт"}
+              {authMode === "sign-in" ? "Войти и добавлять" : "Создать аккаунт"}
             </button>
             <button
               className="h-11 rounded-2xl border border-black/10 bg-white/65 px-4 text-sm font-bold text-neutral-700 transition active:scale-[0.98] dark:border-white/10 dark:bg-white/8 dark:text-neutral-200"
@@ -384,25 +410,6 @@ export function AdminDashboard() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          {isSupabaseConfigured ? (
-            <div className="mb-4 rounded-[1.4rem] border border-sky-500/20 bg-sky-500/10 p-4">
-              <p className="text-sm font-bold text-neutral-950 dark:text-white">
-                Первый запуск Supabase
-              </p>
-              <p className="mt-1 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
-                Если администратор ещё не создан, активируйте роль для текущего аккаунта.
-              </p>
-              <button
-                className="mt-3 flex h-11 items-center justify-center gap-2 rounded-full bg-neutral-950 px-4 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-60 dark:bg-white dark:text-neutral-950"
-                disabled={busy}
-                type="button"
-                onClick={claimFirstAdmin}
-              >
-                {busy ? <Loader2 className="animate-spin" size={16} /> : null}
-                Стать первым админом
-              </button>
-            </div>
-          ) : null}
           <div className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
             <label className="relative grid min-h-72 cursor-pointer place-items-center overflow-hidden rounded-[1.55rem] border border-dashed border-black/16 bg-neutral-950/5 text-center transition hover:bg-neutral-950/8 dark:border-white/16 dark:bg-white/6">
               {imagePreview ? (
@@ -491,42 +498,51 @@ export function AdminDashboard() {
             </span>
           </div>
           <div className="mt-4 grid gap-3">
-            {items.map((prompt) => (
-              <article
-                key={prompt.id}
-                className="grid grid-cols-[76px_1fr] gap-3 rounded-[1.5rem] border border-black/8 bg-white/66 p-2 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/8 dark:bg-white/8"
-              >
-                <img
-                  alt={prompt.title}
-                  className="size-[76px] rounded-[1.1rem] object-cover"
-                  src={prompt.imageUrl}
-                />
-                <div className="min-w-0">
-                  <p className="line-clamp-1 text-base font-black">{prompt.title}</p>
-                  <p className="mt-1 line-clamp-1 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
-                    {prompt.category} · {prompt.tags.slice(0, 3).join(", ")}
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-neutral-950 px-3 text-sm font-bold text-white dark:bg-white dark:text-neutral-950"
-                      type="button"
-                      onClick={() => editPrompt(prompt)}
-                    >
-                      <Pencil size={16} />
-                      Изменить
-                    </button>
-                    <button
-                      aria-label="Удалить"
-                      className="grid size-10 place-items-center rounded-full bg-rose-500 text-white"
-                      type="button"
-                      onClick={() => deletePrompt(prompt)}
-                    >
-                      <Trash2 size={17} />
-                    </button>
+            {items.length ? (
+              items.map((prompt) => (
+                <article
+                  key={prompt.id}
+                  className="grid grid-cols-[76px_1fr] gap-3 rounded-[1.5rem] border border-black/8 bg-white/66 p-2 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/8 dark:bg-white/8"
+                >
+                  <img
+                    alt={prompt.title}
+                    className="size-[76px] rounded-[1.1rem] object-cover"
+                    src={prompt.imageUrl}
+                  />
+                  <div className="min-w-0">
+                    <p className="line-clamp-1 text-base font-black">{prompt.title}</p>
+                    <p className="mt-1 line-clamp-1 text-sm font-semibold text-neutral-500 dark:text-neutral-400">
+                      {prompt.category} · {prompt.tags.slice(0, 3).join(", ")}
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        className="flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-neutral-950 px-3 text-sm font-bold text-white dark:bg-white dark:text-neutral-950"
+                        type="button"
+                        onClick={() => editPrompt(prompt)}
+                      >
+                        <Pencil size={16} />
+                        Изменить
+                      </button>
+                      <button
+                        aria-label="Удалить"
+                        className="grid size-10 place-items-center rounded-full bg-rose-500 text-white"
+                        type="button"
+                        onClick={() => deletePrompt(prompt)}
+                      >
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))
+            ) : (
+              <div className="rounded-[1.5rem] border border-black/8 bg-white/58 p-6 text-center shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/8 dark:bg-white/8">
+                <p className="text-lg font-black">Промптов пока нет</p>
+                <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+                  Загрузите изображение, заполните поля выше и нажмите “Добавить промпт”.
+                </p>
+              </div>
+            )}
           </div>
         </section>
       </div>

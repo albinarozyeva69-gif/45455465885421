@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { seedPrompts } from "@/lib/prompts";
 import {
   getSupabaseClient,
-  isSupabaseConfigured,
   mapPromptRow,
   type PromptCardRow
 } from "@/lib/supabase";
@@ -12,9 +10,9 @@ import { sortByTrending } from "@/lib/trending";
 import type { Prompt } from "@/types/prompt";
 
 export function usePrompts() {
-  const [prompts, setPrompts] = useState<Prompt[]>(seedPrompts);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [source, setSource] = useState<"seed" | "supabase">("seed");
+  const [source, setSource] = useState<"empty" | "supabase">("empty");
 
   useEffect(() => {
     let cancelled = false;
@@ -31,7 +29,7 @@ export function usePrompts() {
             .select("*")
             .order("created_at", { ascending: false });
 
-          if (!error && data?.length && !cancelled) {
+          if (!error && data && !cancelled) {
             setPrompts((data as PromptCardRow[]).map(mapPromptRow));
             setSource("supabase");
           }
@@ -58,7 +56,7 @@ export function usePrompts() {
       )
     );
 
-    if (isSupabaseConfigured && source === "supabase") {
+    if (source === "supabase") {
       const supabase = getSupabaseClient();
       await supabase?.rpc("increment_prompt_copies", { prompt_id: id });
     }

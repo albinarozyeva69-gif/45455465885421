@@ -197,6 +197,7 @@ export function AppShell() {
         : activeCategory === "Все"
           ? "Все промпты"
           : activeCategory;
+  const hasPrompts = prompts.length > 0;
 
   return (
     <>
@@ -248,78 +249,108 @@ export function AppShell() {
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-bold text-neutral-500 dark:text-neutral-400">
-                  Популярное
+                  {hasPrompts ? "Популярное" : "Чистая галерея"}
                 </p>
                 <h1 className="mt-1 max-w-2xl text-3xl font-black tracking-tight sm:text-5xl">
-                  Промпты, которые хочется открыть сразу.
+                  {hasPrompts
+                    ? "Промпты, которые хочется открыть сразу."
+                    : "Добавьте первые промпты через админку."}
                 </h1>
               </div>
-              <button
-                className="hidden rounded-full border border-black/10 bg-white/65 px-4 py-2 text-sm font-bold shadow-sm backdrop-blur-xl transition active:scale-95 dark:border-white/10 dark:bg-white/10 sm:block"
-                type="button"
-                onClick={() => setActiveTab("popular")}
-              >
-                Смотреть всё
-              </button>
+              {hasPrompts ? (
+                <button
+                  className="hidden rounded-full border border-black/10 bg-white/65 px-4 py-2 text-sm font-bold shadow-sm backdrop-blur-xl transition active:scale-95 dark:border-white/10 dark:bg-white/10 sm:block"
+                  type="button"
+                  onClick={() => setActiveTab("popular")}
+                >
+                  Смотреть всё
+                </button>
+              ) : (
+                <Link
+                  className="hidden rounded-full bg-neutral-950 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-black/12 transition active:scale-95 dark:bg-white dark:text-neutral-950 sm:block"
+                  href="/admin"
+                >
+                  Открыть админку
+                </Link>
+              )}
             </div>
           </section>
 
-          <section aria-label="Популярное" className="no-scrollbar flex gap-3 overflow-x-auto px-5 py-4 sm:px-8">
-            {trending.slice(0, 6).map((prompt, index) => (
-              <button
-                key={prompt.id}
-                className="group relative h-48 w-36 shrink-0 overflow-hidden rounded-[1.5rem] text-left shadow-xl shadow-black/12 transition active:scale-[0.98] sm:h-56 sm:w-44"
-                type="button"
-                onClick={() => setSelectedPrompt(prompt)}
-              >
-                <Image
-                  alt={prompt.title}
-                  className="object-cover transition duration-700 group-hover:scale-105"
-                  fill
-                  priority={index < 6}
-                  sizes="176px"
-                  src={prompt.imageUrl}
-                />
-                <span className="absolute inset-0 bg-gradient-to-t from-black/76 via-black/8 to-transparent" />
-                <span className="absolute bottom-3 left-3 right-3 text-white">
-                  <span className="line-clamp-2 text-sm font-black">{prompt.title}</span>
-                  <span className="mt-1 block text-[11px] font-semibold text-white/76">
-                    {prompt.category}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </section>
-
-          <section className="px-5 py-3 sm:px-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-neutral-500 dark:text-neutral-400">
-                  Новое
-                </p>
-                <h2 className="text-2xl font-black tracking-tight">Свежие добавления</h2>
-              </div>
-              <Link
-                className="flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-black/12 transition active:scale-95 dark:bg-white dark:text-neutral-950"
-                href="/admin"
-              >
-                <ShieldCheck size={16} />
-                Админка
-              </Link>
-            </div>
-            <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto pb-2">
-              {newPrompts.map((prompt) => (
+          {hasPrompts ? (
+            <section aria-label="Популярное" className="no-scrollbar flex gap-3 overflow-x-auto px-5 py-4 sm:px-8">
+              {trending.slice(0, 6).map((prompt, index) => (
                 <button
                   key={prompt.id}
-                  className="shrink-0 rounded-full border border-black/8 bg-white/62 px-4 py-3 text-sm font-bold shadow-sm backdrop-blur-xl transition active:scale-95 dark:border-white/10 dark:bg-white/8"
+                  className="group relative h-48 w-36 shrink-0 overflow-hidden rounded-[1.5rem] text-left shadow-xl shadow-black/12 transition active:scale-[0.98] sm:h-56 sm:w-44"
                   type="button"
                   onClick={() => setSelectedPrompt(prompt)}
                 >
-                  {prompt.title}
+                  <Image
+                    alt={prompt.title}
+                    className="object-cover transition duration-700 group-hover:scale-105"
+                    fill
+                    priority={index < 6}
+                    sizes="176px"
+                    src={prompt.imageUrl}
+                  />
+                  <span className="absolute inset-0 bg-gradient-to-t from-black/76 via-black/8 to-transparent" />
+                  <span className="absolute bottom-3 left-3 right-3 text-white">
+                    <span className="line-clamp-2 text-sm font-black">{prompt.title}</span>
+                    <span className="mt-1 block text-[11px] font-semibold text-white/76">
+                      {prompt.category}
+                    </span>
+                  </span>
                 </button>
               ))}
-            </div>
-          </section>
+            </section>
+          ) : (
+            <section className="px-5 py-4 sm:px-8">
+              <div className="rounded-[2rem] border border-black/8 bg-white/62 p-6 shadow-xl shadow-black/6 backdrop-blur-2xl dark:border-white/8 dark:bg-white/8">
+                <p className="text-xl font-black">Картинок и промптов пока нет</p>
+                <p className="mt-2 max-w-lg text-sm leading-6 text-neutral-500 dark:text-neutral-400">
+                  Галерея очищена. Всё, что появится на сайте дальше, будет добавлено вами через админ-панель.
+                </p>
+                <Link
+                  className="mt-5 inline-flex h-12 items-center justify-center rounded-full bg-neutral-950 px-5 text-sm font-bold text-white shadow-lg shadow-black/12 transition active:scale-95 dark:bg-white dark:text-neutral-950"
+                  href="/admin"
+                >
+                  Добавить первый промпт
+                </Link>
+              </div>
+            </section>
+          )}
+
+          {hasPrompts ? (
+            <section className="px-5 py-3 sm:px-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-neutral-500 dark:text-neutral-400">
+                    Новое
+                  </p>
+                  <h2 className="text-2xl font-black tracking-tight">Свежие добавления</h2>
+                </div>
+                <Link
+                  className="flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-black/12 transition active:scale-95 dark:bg-white dark:text-neutral-950"
+                  href="/admin"
+                >
+                  <ShieldCheck size={16} />
+                  Админка
+                </Link>
+              </div>
+              <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto pb-2">
+                {newPrompts.map((prompt) => (
+                  <button
+                    key={prompt.id}
+                    className="shrink-0 rounded-full border border-black/8 bg-white/62 px-4 py-3 text-sm font-bold shadow-sm backdrop-blur-xl transition active:scale-95 dark:border-white/10 dark:bg-white/8"
+                    type="button"
+                    onClick={() => setSelectedPrompt(prompt)}
+                  >
+                    {prompt.title}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <section className="px-5 py-3 sm:px-8">
             <p className="text-sm font-bold text-neutral-500 dark:text-neutral-400">
@@ -373,13 +404,27 @@ export function AppShell() {
               >
                 <div className="rounded-[2rem] border border-black/8 bg-white/58 p-8 text-center shadow-xl shadow-black/5 backdrop-blur-2xl dark:border-white/8 dark:bg-white/8">
                   <p className="text-2xl font-black">
-                    {activeTab === "profile" ? "Избранное пока пустое" : "Промпты не найдены"}
+                    {activeTab === "profile"
+                      ? "Избранное пока пустое"
+                      : hasPrompts
+                        ? "Промпты не найдены"
+                        : "Галерея ждёт ваши промпты"}
                   </p>
                   <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-neutral-500 dark:text-neutral-400">
                     {activeTab === "profile"
                       ? "Добавляйте лучшие карточки сердцем, чтобы быстро вернуться к ним позже."
-                      : "Смените категорию или попробуйте другой поисковый запрос."}
+                      : hasPrompts
+                        ? "Смените категорию или попробуйте другой поисковый запрос."
+                        : "Зайдите в админку, загрузите изображение, добавьте текст промпта и карточка сразу появится здесь."}
                   </p>
+                  {!hasPrompts ? (
+                    <Link
+                      className="mt-5 inline-flex h-12 items-center justify-center rounded-full bg-neutral-950 px-5 text-sm font-bold text-white transition active:scale-95 dark:bg-white dark:text-neutral-950"
+                      href="/admin"
+                    >
+                      Открыть админку
+                    </Link>
+                  ) : null}
                 </div>
               </motion.section>
             )}
